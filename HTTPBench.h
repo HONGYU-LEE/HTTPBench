@@ -8,17 +8,16 @@
 #include<vector>
 #include<cstdlib>
 #include<cstring>
+
 #include<unistd.h>
 #include<sys/param.h>
 #include<getopt.h>
-#include<time.h>
 #include<signal.h>
 
-#define METHOD_GET 0 //get请求的宏
-#define METHOD_HEAD 1 //head请求的宏
-#define MAXHOSTSIZE 256 //host最长256
-#define MAXREQUESTSIZE 1024 //请求包最长1024
-#define MAXPORT 65535//max port
+#define METHOD_GET 0           //get请求
+#define MAXHOSTSIZE 256        //主机号最大长度
+#define MAXREQUESTSIZE 1024    //请求包最大长度
+#define MAXPORT 65535          //最大端口号
 
 using std::cout;
 using std::endl;
@@ -37,8 +36,8 @@ public:
         , _bytes(0)
     {}
 
-    int _success;   //成功数
-    int _fail;      //失败数
+    int _success;   //成功连接数
+    int _fail;      //失败连接数
     int _bytes;     //传输字节数
 };
 
@@ -47,12 +46,9 @@ class HTTPBench
 public:
     HTTPBench()
         : time_recpired(0)
-        , g_atom_clinet(0)
-        , g_atom_sussess(0)
-        , g_atom_fail(0)
-        , g_atom_byte(0)
         , method(METHOD_GET)
         , force(0)
+        , reload(0)
         , clients(1)
         , bench_time(30)
         , proxy_port(80)
@@ -62,15 +58,12 @@ public:
     {}
 
 public:
-    atomic<int> g_atom_clinet;  
-    atomic<int> g_atom_sussess; //连接成功的数量
-    atomic<int> g_atom_fail;    //连接失败的数量
-    atomic<int> g_atom_byte;    //总传输量
     volatile int time_recpired; //超时标记
     int force;                  //是否等待服务器响应
+    int reload;                 //是否重新请求加载(无缓存)
     int method;                 //请求方法
-    int clients ;               //客户端个数
-    int bench_time;             //超时时间
+    int clients ;               //客户端个数, 默认1个
+    int bench_time;             //超时时间, 默认30秒
     int proxy_port;             //代理服务器端口号
     string proxy_host;          //代理服务器主机号
     string host;                //主机号

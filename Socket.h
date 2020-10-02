@@ -106,6 +106,7 @@ class Socket
             return true;
         }
 
+        //关闭套接字
         void Close()
         {
             if(_socket_fd > 0)

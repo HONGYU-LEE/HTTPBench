@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -std=c++11
 OBJS = main.o HTTPBench.o
-LIBS = -ltirpc -pthread
+LIBS = -pthread
 BIN  = HTTPBench
 
 $(BIN):$(OBJS)
