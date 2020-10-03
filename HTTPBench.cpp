@@ -2,7 +2,7 @@
 #include"Socket.h"
 
 HTTPBench http_bench;
-atomic<int> g_atom_clinet;  
+
 atomic<int> g_atom_sussess; //连接成功的数量
 atomic<int> g_atom_fail;    //连接失败的数量
 atomic<int> g_atom_byte;    //总传输量
@@ -14,6 +14,7 @@ static const struct option long_options[] = {
     {"time", required_argument, NULL, 't'},
     {"get", no_argument, &http_bench.method, METHOD_GET},
     {"proxy", required_argument, NULL, 'p'},
+    {"total_req", required_argument, NULL, 'n'},
     {"clients", required_argument, NULL, 'c'},
     {NULL, 0, NULL, 0}
 };
@@ -118,6 +119,10 @@ void HTTPBench::bench_core(COUNT& count)
     host = (proxy_host.empty()) ? host : proxy_host;    //如果有代理host则使用代理host
     char buff[1024] = {0};
 
+    struct timeval s_cur_time;
+    gettimeofday(&s_cur_time, NULL);
+    start_time = s_cur_time.tv_sec;
+
     signal(SIGALRM, handle_sigalrm);    //注册信号处理事件
     alarm(bench_time);                  //开始计时
 
@@ -125,8 +130,11 @@ nextTry:
     while(1)
     {
         //超时则不再执行任务
-        if(time_recpired != 0)
+        if(time_recpired == 1 || g_atom_sussess >= total_req)
         {
+            gettimeofday(&s_cur_time, NULL);
+            end_time = s_cur_time.tv_sec;
+
             return;
         }
 
@@ -140,7 +148,8 @@ nextTry:
         //连接建立失败
         if(socket.Connect(host, proxy_port) == false)
         {
-            ++count._fail;
+            //++count._fail;
+            ++g_atom_fail;
             socket.Close();
             continue;
         }
@@ -149,7 +158,8 @@ nextTry:
         size_t req_len = request.size();
         if(req_len != write(socket.GetFd(), request.c_str(), req_len))
         {
-            ++count._fail;
+            //++count._fail;
+            ++g_atom_fail;
             socket.Close();
             continue;
         }
@@ -159,7 +169,7 @@ nextTry:
         {
             while(1)
             {
-                if(time_recpired != 0)
+                if(time_recpired == 1 || (g_atom_fail + g_atom_sussess) >= total_req)
                 {
                     break;
                 }
@@ -169,7 +179,8 @@ nextTry:
                 //没有接收到任何数据
                 if(read_sz < 0)
                 {
-                    ++count._fail;
+                    //++count._fail;
+                    ++g_atom_fail;
                     socket.Close();
 
                     goto nextTry;   //继续下一轮压力发送
@@ -182,13 +193,14 @@ nextTry:
                 //有数据到来, 记录传输量
                 else
                 {
-                    count._bytes += read_sz;
+                    g_atom_byte += read_sz;
                 }
             }
         }
 
         socket.Close();     //关闭套接字
-        ++count._success;   //成功建立一次连接
+        //++count._success;   //成功建立一次连接
+        ++g_atom_sussess;
     }
 }
 
@@ -199,10 +211,12 @@ static void thr_work()
 
     http_bench.bench_core(count);   //线程开始工作
     
+    /*
     //原子计数
     g_atom_sussess += count._success;
     g_atom_fail    += count._fail;
     g_atom_byte    += count._bytes;
+    */
 }
 
 //压力测试
@@ -244,11 +258,10 @@ bool HTTPBench::bench()
 
     cout << "\n\n" << endl;
     cout << "-----------压力测试结束-----------" << endl;
-    cout << "连接速率   : "<< (g_atom_sussess  + g_atom_fail) / bench_time << " pages/sec" << endl;
-    cout << "传输速率   : "<< g_atom_byte / bench_time << " bytes/sec"<< endl;
+    cout << "连接速率   : "<< (g_atom_sussess  + g_atom_fail) / (end_time - start_time) << " pages/sec" << endl;
+    cout << "传输速率   : "<< g_atom_byte / (end_time - start_time) << " bytes/sec"<< endl;
     cout << "成功数     : "<< g_atom_sussess << endl;
     cout << "失败数     : "<< g_atom_fail << endl;
-    
     cout << "----------------------------" << endl;
    
     return true;
@@ -267,7 +280,7 @@ bool HTTPBench::start(int argc, char* argv[])
         return false;
     }
 
-    while((option = getopt_long(argc, argv, "frt:p:c:", long_options, &options_index)) != EOF)
+    while((option = getopt_long(argc, argv, "frt:p:c:n:", long_options, &options_index)) != EOF)
     {
         switch (option)
         {
@@ -314,6 +327,8 @@ bool HTTPBench::start(int argc, char* argv[])
             }
 
             break;
+        case 'n' : total_req = atoi(optarg);    //设置总连接数
+            break;
         case 'c' : clients = atoi(optarg);  //设置并发的线程数
             break;
         default  : cout << "请确认参数是否正确." << endl;  
@@ -325,8 +340,9 @@ bool HTTPBench::start(int argc, char* argv[])
     build_request(argv[optind]);    //构建HTTP请求
 
     cout << "-----------开始压力测试-----------" << endl;
-    cout << "线程数   : " << clients << endl;
-    cout << "测试时间 : " << bench_time << endl;
+    cout << "并发数    : " << clients << endl;
+    cout << "总连接数  : " << total_req << endl;
+    cout << "测试时间  : " << bench_time << endl;
     cout << "---------------------------------" << endl;
 
     if(force != 0)

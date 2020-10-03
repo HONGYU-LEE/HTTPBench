@@ -13,7 +13,7 @@
 #include<sys/param.h>
 #include<getopt.h>
 #include<signal.h>
-#include<sys/time.h>
+#include <sys/time.h>
 
 #define METHOD_GET 0           //get请求
 #define MAXHOSTSIZE 256        //主机号最大长度
@@ -48,14 +48,14 @@ public:
     HTTPBench()
         : time_recpired(0)
         , method(METHOD_GET)
-        , force(0)
         , reload(0)
         , clients(1)
+        , threads(1)
         , total_req(1000000)
-        , start_time(0)
-        , end_time(0)
         , bench_time(30)
         , proxy_port(80)
+        , start_time(0)
+        , end_time(0)
         , proxy_host("")
         , host("")
         , request("")
@@ -63,15 +63,15 @@ public:
 
 public:
     volatile int time_recpired; //超时标记
-    int force;                  //是否等待服务器响应
     int reload;                 //是否重新请求加载(无缓存)
     int method;                 //请求方法
-    int clients;                //客户端个数, 默认1个
+    int threads;                //线程数
     int total_req;              //总连接数
-    int start_time;             //开始时间
-    int end_time;               //结束时间
+    int clients;                //客户端个数, 默认1个
     int bench_time;             //超时时间, 默认30秒
     int proxy_port;             //代理服务器端口号
+    int start_time;             //开始时间
+    int end_time;               //结束时间
     string proxy_host;          //代理服务器主机号
     string host;                //主机号
     string request;             //请求报文
@@ -80,7 +80,10 @@ public:
     bool start(int argc,char*argv[]);       //启动程序
     void build_request(const char* str);    //创建http请求
     bool bench();                           //压力测试
-    void bench_core(COUNT& t);              //压力测试核心
+    bool bench_core();                      //压力测试核心
+    void create_conn();                     //创建一次连接
+    void create_all_conn(int clients);      //创建所有连接
+    
 };
 
 #endif // !__HTTPBENCH_H__ 
