@@ -20,9 +20,9 @@ HTTP是一个基于多线程实现的HTTP压力测试工具
 
 -r(不进行缓存）
 
-![image](https://github.com/HONGYU-LEE/HTTPBench/doc/1.png)
+![image](https://github.com/HONGYU-LEE/HTTPBench/blob/master/doc/1.png)
 
-![image](https://github.com/HONGYU-LEE/HTTPBench/doc/2.png)
+![image](https://github.com/HONGYU-LEE/HTTPBench/blob/master/doc/2.png)
 
 ## 项目链接
 https://github.com/HONGYU-LEE/HTTPBench
